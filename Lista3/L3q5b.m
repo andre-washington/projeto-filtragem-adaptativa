@@ -25,9 +25,9 @@ for i=1:rep
         yw(i) = sum(w(1:i)) ;
         e(i) = d(i) - yw(i);
         w(1:12) = w(1:12) + 2*mu_max*e(i);
-
+        
     end
-
+    
 end
 % figure(2)
 

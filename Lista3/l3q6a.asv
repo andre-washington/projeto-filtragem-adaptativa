@@ -23,7 +23,7 @@ gama = 10^-9;
 % sinal 4 qam
 const = [1+i,1-i,-1+i,-1-i];
 data  = ceil(4*rand(rep,1));
-s = transpose(const(data));  % sinal de treinamento
+s = transpose(const(data)); 
 % n = n_var_4qam*randn(1,rep); %ruído
 
 
@@ -33,7 +33,3 @@ sh = filter(H_num, H_den, s);
 n_var_4qam = var(sh) * 10^(-SNR/10);
 n = sqrt(n_var_4qam)* randn(1,rep);
 x=sh+n'; % sinal desejado na entrada do equalizador + ruido
-
-w(1:4,1) = 0; 
-xw(1,4) = 0;
-
