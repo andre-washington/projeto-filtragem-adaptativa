@@ -32,8 +32,11 @@ H_num = [0.5 1.2 1.5 -1];
 H_den = 1;
 sh = filter(H_num, H_den, s);
 n_var_4qam = var(sh) * 10^(-SNR/10);
-n = sqrt(n_var_4qam)* randn(1,rep);
-x=sh+n'; % sinal desejado na entrada do equalizador + ruido
+    
+%ruído deve ser complexo e a variancia divida para cada parte (real/imag)
+n = sqrt(n_var_4qam/2)*(randn(1,rep)+1i*(randn(1, rep)));
+% transposte deve ser usada no lugar do hermitiano
+x=sh+transpose(n); % sinal desejado na entrada do equalizador + ruido
 
 w(1,1:4) = 0; 
 xw(1,4) = 0;
