@@ -35,26 +35,12 @@ n_var_4qam = var(sh) * 10^(-SNR/10);
 n = sqrt(n_var_4qam)* randn(1,rep);
 x=sh+n'; % sinal desejado na entrada do equalizador + ruido
 
-w(1,1:4) = 0; 
+w(1:4,1) = 0; 
 xw(1,4) = 0;
-xr = zeros(1, 4);
-passo = 0.1;
-gama = 10^(-6);
+xr = zeros(1, 4)
+
 for i=4:rep
     xr = [x(i) xr(1:4-1)]; % varre os elementos de x
-    s(i-3);
-    e=s(i-3) - xr * w';
-    w = w + passo * xr * conj(e) / (xr * xr' + gama);
-   
-
-hold on
-semilogx(i,real(w));
-xlabel('plot(w)');
+    e=s(i-3) - xr * w;
+    w = w + step * x_regressor' * e / (xr * xr' + epsilon);
 end
-% subplot(2,1, 1);
-% semilogx(real(e.*e));
-% xlabel('plot(e.*e)');
-% 
-% subplot(2,1, 2);
-% plot(real(e));
-% xlabel('plot(e)');
