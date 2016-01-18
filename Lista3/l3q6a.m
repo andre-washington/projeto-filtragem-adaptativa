@@ -16,10 +16,7 @@
 % e(k) = d(k) - x^H (k) *w(k)
 % w(k+1) = w(k) + mu_n/ (gama + x^H(k) * x(k) ) * conjugated (e(k)) * x(k)
 
-
-clear all
-clf (figure(1))
-clf (figure(2))
+clear
 
 num_taps = 15;
 rep = 500; % numero de repetições
@@ -27,7 +24,7 @@ SNR = 30;
 % n_var_4qam = 10^-3;
 
 mu = 0.4;
-gama = 10^-9; 
+gama = 10^-5; 
    
 % sinal 4 qam
 %constelation = [1+1i,1-1i,-1+1i,-1-1i];
@@ -36,8 +33,7 @@ gama = 10^-9;
 
 M = 4;                     % Size of signal constellation
 k = log2(M);                % Number of bits per symbol
-
-rng default 
+ 
 dataIn = randi([0 1],k*rep,1);
 dataInMatrix = reshape(dataIn,length(dataIn)/k,k);   % Reshape data into binary 4-tuples
 dataSymbolsIn = bi2de(dataInMatrix);                 % Convert to integers
@@ -57,17 +53,16 @@ x=sh+n; % sinal desejado na entrada do equalizador + ruido
 
 % part I: trainning.
 w = zeros(num_taps, 1); 
-% xw(1,4) = 0;
-%xr = zeros(1, 4);
 
 eq_out = zeros(1, rep);
 err_vec = zeros(1,rep);
 
 for k = num_taps:rep
+    
     input = x(k-num_taps+1:k);
     eq_out(k) = w'*input;
     err_vec(k) = s(k) - eq_out(k);
-    w = w + mu * conj(err_vec(k)) * input / ( input' * input + gama);
+    w = w + (mu/(gama + input' * input))*(conj(err_vec(k)) * input);
     
 end
 
