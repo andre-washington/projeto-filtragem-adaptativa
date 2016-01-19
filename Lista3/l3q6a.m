@@ -20,7 +20,7 @@ rep = 500; % numero de repetições
 SNR = 30;
 % n_var_4qam = 10^-3;
 
-mu_n = 0.1;
+mu_n = 0.4;
 % gama = 10^-9; 
    
 % sinal 4 qam
@@ -42,16 +42,16 @@ n = sqrt(n_var_4qam/2)*(randn(1,rep)+1i*(randn(1, rep)));
 x=sh+transpose(n); % sinal desejado na entrada do equalizador + ruido
 
 % part I: trainning.
-w(1,1:4) = 0; 
+w(1,1:15) = 0; 
 % xw(1,4) = 0;
-xr = zeros(1, 4);
+xr = zeros(1, 15);
 passo = 0.19;
 gama = 10^(-6);
-for k=5:rep
+for k=15:rep
    
-    xr = [x(k) xr(1:4-1)]; % varre os elementos de x
+    xr = [x(k) xr(1:15-1)]; % varre os elementos de x
     xw = xr*w';
-    e=s(k-4) - xw; %xr * w';
+    e=s(k-14) - xw; %xr * w';
     erro(k)=e;
     w = w + passo * xr * conj(e) / (xr * xr' + gama);
 end
@@ -64,38 +64,44 @@ xlabel('plot(e.*e)');
 % part II: decision block included. 
 
 rep = 5000;
-% sinal 16 qam
-constelation2 = [ 
-1+1i,1-1i,-1+1i,-1-1i, 2+1i,2-1i,-2+1i,-2-1i, 1+2i,1-2i,-1+2i,-1-2i, 2+2i,2-2i,-2+2i,-2-2i ];
-data  = ceil(16*rand(rep,1));
-s2 = transpose(constelation2(data));  % sinal de entrada
+M = 16;                     % Size of signal constellation
+k = log2(M);                % Number of bits per symbol
+dataIn = randi([0 1],k*rep,1);
+dataInMatrix = reshape(dataIn,length(dataIn)/k,k);   % Reshape data into binary 4-tuples
+dataSymbolsIn = bi2de(dataInMatrix);                 % Convert to integers
+
+s2 = qammod(dataSymbolsIn,M,0); 
 
 sh2 = filter(H_num, H_den, s2);
-n_var_4qam = var(sh2) * 10^(-SNR/10);
+n_var_16qam = var(sh2) * 10^(-SNR/10);
     
 %ruído deve ser complexo e a variancia divida para cada parte (real/imag)
-n = sqrt(n_var_4qam/2)*(randn(1,rep)+1i*(randn(1, rep)));
+n = sqrt(n_var_16qam/2)*(randn(1,rep)+1i*(randn(1, rep)));
 % transposte deve ser usada no lugar do hermitiano
 x2=sh2+transpose(n); % sinal desejado na entrada do equalizador + ruido
- xr = zeros(1, 4);
+ xr = zeros(1, 15);
  xd =  zeros(1,4995);
- for k=5:rep
-    xr = [x2(k) xr(1:4-1)]; % varre os elementos de x
+ for k=16:rep
+    xr = [x2(k) xr(1:15-1)]; % varre os elementos de x
     xw = xr*w';
-    xd(k) = round(real(xw)) + round(imag(xw))*1i ;% decision  
-    if(real(xd(k))>2)
-        xd(k)=2+imag(xd(k))*1i;
+    
+    % decision block
+    xd(k) = round(real(xw)) + round(imag(xw))*1i ; 
+   
+    if(real(xd(k))>3)
+        xd(k)=3+imag(xd(k))*1i;
     end
-    if(real(xd(k))<-2)
-        xd(k)= -2 + imag(xd(k))*1i;
+    if(real(xd(k))<-3)
+        xd(k)= -3 + imag(xd(k))*1i;
     end
-    if(imag(xd(k))>2)
-        xd(k)= real(xd(k)) + 2i;
+    if(imag(xd(k))>3)
+        xd(k)= real(xd(k)) + 3i;
     end
     
-    if(imag(xd(k))<-2)
-        xd(k)= real(xd(k)) - 2i;
+    if(imag(xd(k))<-3)
+        xd(k)= real(xd(k)) - 3i;
     end
+    % end of decision block
     
     e= xd(k) - xw;
     erro(k)=e;
@@ -106,7 +112,7 @@ x2=sh2+transpose(n); % sinal desejado na entrada do equalizador + ruido
  
  figure(2)
 plot(1:5000,real(erro.*erro),'red');
- axis([-1 600 -1 1]);
+ axis([-1 rep -1 1]);
 xlabel('plot(e.*e)');
 
 
