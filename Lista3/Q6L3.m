@@ -72,7 +72,7 @@ init = zeros(num_taps - 1, 1);
 %     
 % end
 
-for k = 8:rep % Ã‰ nessessario esperar um momento atÃ© fazer a comparaÃ§Ã£o com o sinal (SeÃ§Ã£o 2.10.4 pag.57 Diniz), uma boa espera Ã© a metade do comprimento do filtro. Nesse caso 7 ou 8.
+for k = 8:rep % É nessessario esperar um momento (amostras) até fazer a comparação com o sinal (Seção 2.10.4 pag.57 Diniz) . Nesse caso 7 ou 8(metade do comprimento do filtro), pois tem comprimento 15.
     if(k < num_taps)
 	inp = [x(k); init];
     init = inp(1:end-1);
@@ -80,12 +80,12 @@ for k = 8:rep % Ã‰ nessessario esperar um momento atÃ© fazer a comparaÃ§�
 	inp = x(k:-1:k-num_taps+1);	   
     end
     eq_out(k) = w'*inp;
-    err_vec(k) = s(k-7) - eq_out(k); % Compara o sinal de entrada com saida de saida (adiantado). Por exemplo(sinal 1 com saÃ­da 8)
+    err_vec(k) = s(k-7) - eq_out(k); % Compara o sinal de entrada com saida (adiantado). Por exemplo(sinal(s) 1 com saida (eq_out) 8)
     w = w + (mu/(gama + inp' * inp))*(conj(err_vec(k)) * inp);
     
 end
 figure(1)
-plot3(real(eq_out),imag(eq_out),1:rep,'r.'); % plota da modulaÃ§Ã£o 4 QAM
+plot3(real(eq_out),imag(eq_out),1:rep,'r.'); % plota da modulação 4 QAM
 %keyboard;
 figure(2)
 semilogy(1:500, real(conj(err_vec).*err_vec));
@@ -131,7 +131,7 @@ dataOut = dataOutMatrix(:);
 
 %ber
 figure(3)
-plot3(real(eq_out),imag(eq_out),1:rep,'r.'); % plota da modulaÃ§Ã£o 16 QAM
+plot3(real(eq_out),imag(eq_out),1:rep,'r.'); % plota da modulação 16 QAM
 figure(4)
 plot(1:5000,real(erro.*erro),'red');
 % axis([-1 600 -1 1]);
