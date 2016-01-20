@@ -21,7 +21,7 @@ clear
 num_taps = 15;
 rep = 500; % numero de repetiï¿½ï¿½es
 SNR = 30;
-% n_var_4qam = 10^-3;
+
 
 mu = 0.4;
 gama = 10^-5; 
