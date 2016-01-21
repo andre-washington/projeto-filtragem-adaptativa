@@ -19,9 +19,9 @@
 clear
 
 num_taps = 15;
-rep = 500; % numero de repeti��es
+rep = 500; % numero de repetiï¿½ï¿½es
 SNR = 30;
-% n_var_4qam = 10^-3;
+
 
 mu = 0.4;
 gama = 10^-5; 
@@ -32,13 +32,13 @@ gama = 10^-5;
 %s = transpose(constelation(data));  % sinal de treinamento
 
 M = 4;                     % Size of signal constellation
-k = log2(M);                % Number of bits per symbol
+nb = log2(M);                % Number of bits per symbol
  
-dataIn = randi([0 1],k*rep,1);
-dataInMatrix = reshape(dataIn,length(dataIn)/k,k);   % Reshape data into binary 4-tuples
+dataIn = randi([0 1],nb*rep,1);
+dataInMatrix = reshape(dataIn,length(dataIn)/nb,nb);   % Reshape data into binary 4-tuples
 dataSymbolsIn = bi2de(dataInMatrix);                 % Convert to integers
 s = qammod(dataSymbolsIn,M,0); 
-% n = n_var_4qam*randn(1,rep); %ru�do
+% n = n_var_4qam*randn(1,rep); %ruï¿½do
 
 
 H_num = [0.5 1.2 1.5 -1];
@@ -46,7 +46,7 @@ H_den = 1;
 sh = filter(H_num, H_den, s);
 n_var_4qam = var(sh) * 10^(-SNR/10);
     
-%ru�do deve ser complexo e a variancia divida para cada parte (real/imag)
+%ruï¿½do deve ser complexo e a variancia divida para cada parte (real/imag)
 n = sqrt(n_var_4qam/2)*(randn(rep, 1)+1i*(randn(rep, 1)));
 % transposte deve ser usada no lugar do hermitiano
 x=sh+n; % sinal desejado na entrada do equalizador + ruido
@@ -57,19 +57,45 @@ w = zeros(num_taps, 1);
 eq_out = zeros(1, rep);
 err_vec = zeros(1,rep);
 
-for k = num_taps:rep
-    
-    input = x(k-num_taps+1:k);
-    eq_out(k) = w'*input;
-    err_vec(k) = s(k) - eq_out(k);
-    w = w + (mu/(gama + input' * input))*(conj(err_vec(k)) * input);
+init = zeros(num_taps - 1, 1);
+
+% for k = 1:rep
+%     if(k < num_taps)
+% 	inp = [x(k); init];
+% 	init = inp(1:end-1);
+%     else
+% 	inp = x(k:-1:k-num_taps+1);	   
+%     end
+%     eq_out(k) = w'*inp;
+%     err_vec(k) = s(k) - eq_out(k);
+%     w = w + (mu/(gama + inp' * inp))*(conj(err_vec(k)) * inp);
+%     
+% end
+
+for k = 8:rep % É nessessario esperar um momento (amostras) até fazer a comparação com o sinal (Seção 2.10.4 pag.57 Diniz) . Nesse caso 7 ou 8(metade do comprimento do filtro), pois tem comprimento 15.
+    if(k < num_taps)
+	inp = [x(k); init];
+    init = inp(1:end-1);
+    else
+	inp = x(k:-1:k-num_taps+1);	   
+    end
+    eq_out(k) = w'*inp;
+    err_vec(k) = s(k-7) - eq_out(k); % Compara o sinal de entrada com saida (adiantado). Por exemplo(sinal(s) 1 com saida (eq_out) 8)
+    w = w + (mu/(gama + inp' * inp))*(conj(err_vec(k)) * inp);
     
 end
-
-
 figure(1)
-semilogy(1:500, real(conj(err_vec).*err_vec));
+plot3(real(eq_out),imag(eq_out),1:rep,'r.'); % plota da modulação 4 QAM
+%keyboard;
+figure(2)
+semilogy(1:500, conj(err_vec).*err_vec);
 xlabel('plot(e.*e)');
+
+%figure(2)
+%semilogy(real(s));
+%xlabel('plot(e.*e)');
+
+
 
 % part II: decision block included. 
 
@@ -81,9 +107,9 @@ rep = 5000;
 %s2 = transpose(constelation2(data));  % sinal de entrada
 
 M = 16;                     % Size of signal constellation
-k = log2(M);                % Number of bits per symbol
-dataIn = randi([0 1],k*rep,1);
-dataInMatrix = reshape(dataIn,length(dataIn)/k,k);   % Reshape data into binary 4-tuples
+nb = log2(M);                % Number of bits per symbol
+dataIn = randi([0 1],nb*rep,1);
+dataInMatrix = reshape(dataIn,length(dataIn)/nb,nb);   % Reshape data into binary 4-tuples
 dataSymbolsIn = bi2de(dataInMatrix);                 % Convert to integers
 
 s2 = qammod(dataSymbolsIn,M,0); 
@@ -91,22 +117,91 @@ s2 = qammod(dataSymbolsIn,M,0);
 sh2 = filter(H_num, H_den, s2);
 n_var_4qam = var(sh2) * 10^(-SNR/10);
     
-%ru�do deve ser complexo e a variancia divida para cada parte (real/imag)
+%ruï¿½do deve ser complexo e a variancia divida para cada parte (real/imag)
 n = sqrt(n_var_4qam/2)*(randn(rep, 1)+1i*(randn(rep, 1)));
 % transposte deve ser usada no lugar do hermitiano
 x2=sh2+n; % sinal desejado na entrada do equalizador + ruido
- 
-eq_out = filter(w, 1, x2);
+
+eq_out = zeros(1, rep);
+err_vec = zeros(1,rep);
+init = zeros(num_taps - 1, 1);
+xd = zeros(1, rep);
+
+for k = 1:rep % É nessessario esperar um momento (amostras) até fazer a comparação com o sinal (Seção 2.10.4 pag.57 Diniz) . Nesse caso 7 ou 8(metade do comprimento do filtro), pois tem comprimento 15.
+    if(k < num_taps)
+	inp = [x2(k); init];
+    init = inp(1:end-1);
+    else
+	inp = x2(k:-1:k-num_taps+1);	   
+    end
+    eq_out(k) = w'*inp;
+    
+    % decision block
+    %rounding real part
+    switch(abs(real(eq_out(k))))
+        case 0
+            switch(randi(2))
+                case 1
+                    xd(k) = complex(1, imag(eq_out(k)));
+                case 2
+                    xd(k) = complex(-1, imag(eq_out(k)));
+            end
+        case 2 
+             switch(randi(2))
+                case 1
+                    xd(k) = complex(3*sign(real(eq_out(k))), imag(eq_out(k)));
+                case 2
+                    xd(k) = complex(1*sign(real(eq_out(k))), imag(eq_out(k)));
+             end
+        otherwise
+            if (abs(real(eq_out(k))) > 2)
+                xd(k) = complex(sign(real(eq_out(k)))*3, imag(eq_out(k)));
+            else
+                xd(k) = complex(sign(real(eq_out(k)))*1, imag(eq_out(k)));
+            end
+    end
+    %rounding imaginary part
+    
+    switch(abs(imag(xd(k))))
+        case 0
+            switch(randi(2))
+                case 1
+                    xd(k) = complex(real(xd(k)), 1);
+                case 2
+                    xd(k) = complex(real(xd(k)), -1);
+            end
+        case 2 
+             switch(randi(2))
+                case 1
+                    xd(k) = complex(real(xd(k)), 3*sign(imag(xd(k))));
+                case 2
+                    xd(k) = complex(real(xd(k)), 1*sign(imag(xd(k))));
+             end
+        otherwise
+            if (abs(imag(xd(k))) > 2)
+                xd(k) = complex(real(xd(k)), sign(imag(xd(k)))*3);
+            else
+                xd(k) = complex(real(xd(k)), sign(imag(xd(k)))*1);
+            end
+    end
+    % end of decision block
+    
+    err_vec(k) = eq_out(k) - xd(k); 
+    w = w + (mu/(gama + inp' * inp))*(conj(err_vec(k)) * inp);
+    
+end
+
 dataSymbolsOut = qamdemod(eq_out,M); 
-dataOutMatrix = de2bi(dataSymbolsOut,k);
+dataOutMatrix = de2bi(dataSymbolsOut,nb);
 dataOut = dataOutMatrix(:); 
 
 [numErrors,ber] = biterr(dataIn,dataOut);
 
-ber
-
-% figure(2)
-%plot(1:5000,real(erro.*erro),'red');
+%ber
+figure(3)
+plot3(real(eq_out),imag(eq_out),1:rep,'r.'); % plota da modulação 16 QAM
+figure(4)
+semilogy(1:5000, conj(err_vec).*err_vec, 'red');
+xlabel('plot(e.*e)');
 % axis([-1 600 -1 1]);
-%xlabel('plot(e.*e)');
 
