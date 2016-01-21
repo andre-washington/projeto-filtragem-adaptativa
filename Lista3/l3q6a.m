@@ -185,10 +185,10 @@ for k = 1:rep % É nessessario esperar um momento (amostras) até fazer a compar
             end
     end
     % end of decision block
-    
-    err_vec(k) = eq_out(k) - xd(k); 
+    if(k > 7)
+    err_vec(k) = eq_out(k) - xd(k-7); 
     w = w + (mu/(gama + inp' * inp))*(conj(err_vec(k)) * inp);
-    
+    end
 end
 
 dataSymbolsOut = qamdemod(eq_out,M); 
