@@ -1,6 +1,8 @@
+clear, clc, close all;
+
 num_ite = 10;
 num_taps = 3;
-input = cos(pi/3*(1:11))';
+input = cos(pi/3*(1:num_ite+1))';
 lambda = 0.98;
 delta = 100;
 w = [ 1 0 0]';
@@ -10,18 +12,19 @@ pd = zeros(num_taps, 1);
 x = zeros(num_taps, 1);
 err_vec = zeros(num_ite, 1);
 y = zeros(num_ite, 1);
-for k = 1:num_ite
-   d = input(k+1); 
+for k = 1:num_ite 
+   d = input(k+1);
    if (k < num_taps)
        x = [input(k); x(1:end-1)];
    else
        x = input(k:-1:k-num_taps+1);
    end
-   sd = 1/lambda*(sd - (sd*x*x'*sd)/(lambda + x'*sd*x));
+   e = d - x'*w;
+   phi = sd*x;
    
-   pd = lambda*pd + d*x;
- 
-   w = sd*pd;
+   sd = 1/lambda*(sd - (phi*phi')/(lambda + phi'*x));
+   
+   w = w + e*sd*x;
    
    y(k) = w'*x;
    err_vec(k) = d - y(k);
