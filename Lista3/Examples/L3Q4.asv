@@ -118,7 +118,7 @@ for i=2:amostras
     emqlms(i-1)  = elms  * elms;
     emqlmsn(i-1) = elmsn * elmsn;
 end
-emqlms
+
 w0 = inv(R)*p;
 
 subplot(2,2,1); hold on;
