@@ -1,22 +1,9 @@
-% % LMS complexo
-% e(k) = d(k) -w^H (k) x(k);
-% w(k+1) = w(k) + mu_c * conjugated(e) * (k) * x(k)
-
-% % NRMS
-% % Inicializa
-% x(0) = w(0) = [ 0 0 .. 0]^T
-% mu_n no intervalo 0< mu_n <= 2
-% gama  const. pequeno
-%
-% % para k> 0:
-% e(k) = d(k) - x^T (k) *w(k)
-% w(k+1) = w(k) + mu_n/ (gama + x^T(k) * x(k) ) * e(k) * x(k)
-
 clear all
-clf (figure(1))
-clf (figure(2))
-clf (figure(3))
-clf (figure(4))
+
+% clf (figure(1))
+% clf (figure(2))
+% clf (figure(3))
+% clf (figure(4))
 
 rep = 500; % numero de repetições
 SNR = 30;
@@ -91,21 +78,21 @@ for k=16:rep
     xw(k) = xr*w';
     
     % decision block
-    xd(k) = round(real(xw(k))) + round(imag(xw(k)))*1i ;
-    
-    if(real(xd(k))>3)
-        xd(k)=3+imag(xd(k))*1i;
-    end
-    if(real(xd(k))<-3)
-        xd(k)= -3 + imag(xd(k))*1i;
-    end
-    if(imag(xd(k))>3)
-        xd(k)= real(xd(k)) + 3i;
-    end
-    
-    if(imag(xd(k))<-3)
-        xd(k)= real(xd(k)) - 3i;
-    end
+%     xd(k) = round(real(xw(k))) + round(imag(xw(k)))*1i ;
+    xd(k) = decisor(xw(k), 3);
+%     if(real(xd(k))>3)
+%         xd(k)=3+imag(xd(k))*1i;
+%     end
+%     if(real(xd(k))<-3)
+%         xd(k)= -3 + imag(xd(k))*1i;
+%     end
+%     if(imag(xd(k))>3)
+%         xd(k)= real(xd(k)) + 3i;
+%     end
+%     
+%     if(imag(xd(k))<-3)
+%         xd(k)= real(xd(k)) - 3i;
+%     end
     % end of decision block
     
     e= xd(k) - xw(k);
@@ -128,5 +115,12 @@ axis([-1 rep -1 1]);
 xlabel('plot(e.*e)');
 
 [num, rate ]= biterr(abs(real(s2))',abs(real(xd)))
+
+
+
+
+
+
+
 
 
