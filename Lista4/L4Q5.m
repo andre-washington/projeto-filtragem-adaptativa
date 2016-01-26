@@ -10,9 +10,10 @@ num_ite = num_symt + num_symd; % number of total iterations
 
 SNR = 30; % given signal to noise ratio
 
-mu = 0.4; % given step factor
-gama = 10^-6; % 
-   
+mu = 0.4; % given step factor 
+lambda = [0.9, 0.99, 0.999];
+
+for l = 1:length(lambda)
 %generating the data signal for training (4QAM) and
 %control-by-decision(16QAM)
 data_t = randi(const_sizet, num_symt, 1) - 1; 
@@ -36,11 +37,15 @@ ch_out = filter(H_num, H_den, signal);
 % Computing the noise variance for each constellation map for 30db SNR
 % Normalization factor QAM sqrt( 2/3(M-1) ), M being the constellation size
 
-n_var_t = (norm(H_num).^2* 2/3*(const_sizet-1)) * 10^(-SNR/10);
-n_var_d = (norm(H_num).^2* 2/3*(const_sized-1)) * 10^(-SNR/10);   
+inp_var_t = norm(H_num).^2* 2/3*(const_sizet-1); 
+inp_var_d = norm(H_num).^2* 2/3*(const_sized-1); 
+
+n_var_t = (inp_var_t) * 10^(-SNR/10);
+n_var_d = (inp_var_d) * 10^(-SNR/10);   
 
 %the noise should be complex and the variance divided for each part (real/imag)
 %noise for the training part
+
 noise_t = sqrt(n_var_t/2)*(randn(num_symt, 1)+1i*(randn(num_symt, 1)));
 
 %noise for the control by decision part
@@ -63,15 +68,27 @@ init = zeros(num_taps - 1, 1); % vector for convolution sliding window
 % Half of filter length
 delay = ceil(num_taps/2);
 
+delta = 1/inp_var_t;
+sd = delta*eye(num_taps);
+pd = zeros(num_taps, 1);
 for k = 1:num_symt  
-	inp = [x(k); init];
+    inp = [x(k); init];
     init = inp(1:end-1);
-    eq_out(k) = w'*inp;
+      
     if(k > delay)
-    err_vec(k) = signal(k-delay) - eq_out(k); % Compara o sinal de entrada com saida (adiantado). Por exemplo(sinal(s) 1 com saida (eq_out) 8)
-    w = w + mu*conj(err_vec(k))*inp/(inp'*inp+gama);
+       d = signal(k-delay);  
+	  
+       sd = 1/lambda(l)*(sd - (sd*inp*inp'*sd)/(lambda(l) + inp'*sd*inp));
+       pd = lambda(l)*pd + d*inp;         
+       w = sd*pd;
+      
+       eq_out(k) = w'*inp;
+    
+       err_vec(k) = d - eq_out(k); % Compara o sinal de entrada com saida (adiantado). Por exemplo(sinal(s) 1 com saida (eq_out) 8)
+    
     end
 end
+
 
 % ploting the equalizer output in time
 %figure(1)
@@ -82,41 +99,17 @@ end
 for k = num_symt+1:num_symt+num_symd % Ã‰ nessessario esperar um momento (amostras) atÃ© fazer a comparaÃ§Ã£o com o sinal (SeÃ§Ã£o 2.10.4 pag.57 Diniz) . Nesse caso 7 ou 8(metade do comprimento do filtro), pois tem comprimento 15.
 	inp = [x(k); init];
     init = inp(1:end-1);
-    
+      
+    d = qam_decisor(w'*inp, const_sized);   
+    sd = 1/lambda(l)*(sd - (sd*inp*inp'*sd)/(lambda(l) + inp'*sd*inp));
+    pd = lambda(l)*pd + d*inp;         
+    w = sd*pd;
+      
     eq_out(k) = w'*inp;
-   
-    d = qam_decisor(eq_out(k), const_sized);
     
-    err_vec(k) = d - eq_out(k); 
-    w = w + mu*conj(err_vec(k))*inp/(inp'*inp+gama);
+    err_vec(k) = d - eq_out(k); % Compara o sinal de entrada com saida (adiantado). Por exemplo(sinal(s) 1 com saida (eq_out) 8)  
     
 end
-
-%% ploting
-
-% plot setup for better graphs
-
-figure(1)
-subplot(1,3,1);
-plot3(real(signal_d),imag(signal_d),1:num_symd,'r.'); % plota da modulaÃ§Ã£o 16 QAM
-title('Evolução Temporal de s(n)');
-xlabel('R\{s(n)\}');
-ylabel('I\{s(n)\}');
-zlabel('Num. de Iterações (Tempo)');
-
-subplot(1,3,2);
-plot3(real(x(num_symt+1:end)),imag(x(num_symt+1:end)),1:num_symd,'r.'); % plota da modulaÃ§Ã£o 16 QAM
-title('Evolução Temporal de x(n)');
-xlabel('R\{x(n)\}');
-ylabel('I\{x(n)\}');
-zlabel('Num. de Iterações (Tempo)');
-
-subplot(1,3,3);
-plot3(real(eq_out(num_symt+1:end)),imag(eq_out(num_symt+1:end)),1:num_symd,'r.'); % plota da modulaÃ§Ã£o 16 QAM
-title('Evolução Temporal de s~(n)');
-xlabel('R\{s~(n)\}');
-ylabel('I\{s~(n)\}');
-zlabel('Num. de Iterações (Tempo)');
 
 figure(2)
 semilogy(1:num_ite, err_vec.*conj(err_vec));
@@ -144,3 +137,5 @@ set( gca                       , ...
       'XColor'      , [.3 .3 .3], ...
       'YColor'      , [.3 .3 .3], ...
       'LineWidth'   , 1         );
+
+end

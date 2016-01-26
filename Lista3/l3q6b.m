@@ -35,15 +35,15 @@ ch_out = filter(H_num, H_den, signal);
 % Computing the noise variance for each constellation map for 30db SNR
 % Normalization factor QAM sqrt( 2/3(M-1) ), M being the constellation size
 
-n_var_4qam = (norm(H_num).^2* 2/3*(const_sizet-1)) * 10^(-SNR/10);
-n_var_16qam = (norm(H_num).^2* 2/3*(const_sized-1)) * 10^(-SNR/10);   
+n_var_t = (norm(H_num).^2* 2/3*(const_sizet-1)) * 10^(-SNR/10);
+n_var_d = (norm(H_num).^2* 2/3*(const_sized-1)) * 10^(-SNR/10);   
 
 %the noise should be complex and the variance divided for each part (real/imag)
 %noise for the training part
-noise_t = sqrt(n_var_4qam/2)*(randn(num_symt(j), 1)+1i*(randn(num_symt(j), 1)));
+noise_t = sqrt(n_var_t/2)*(randn(num_symt(j), 1)+1i*(randn(num_symt(j), 1)));
 
 %noise for the control by decision part
-noise_d = sqrt(n_var_16qam/2)*(randn(num_symd, 1)+1i*(randn(num_symd, 1)));
+noise_d = sqrt(n_var_d/2)*(randn(num_symd, 1)+1i*(randn(num_symd, 1)));
 
 % computing the equalizer input (adding awgn noise to channel output)
 x = ch_out + [noise_t ; noise_d]; 
@@ -72,8 +72,8 @@ delay = ceil(num_taps/2);
     end
 
 % ploting the equalizer output in time
-figure(3*j-2)
-plot3(real(eq_out(1:num_symt(j))),imag(eq_out(1:num_symt(j))),1:num_symt(j),'r.'); 
+%figure(3*j-2)
+%plot3(real(eq_out(1:num_symt(j))),imag(eq_out(1:num_symt(j))),1:num_symt(j),'r.'); 
 
 % part II: control by decision mode. 
 
@@ -90,12 +90,29 @@ plot3(real(eq_out(1:num_symt(j))),imag(eq_out(1:num_symt(j))),1:num_symt(j),'r.'
 
     end
 
-figure(3*j-1)
-plot3(real(eq_out(num_symt(j)+1:end)),imag(eq_out(num_symt(j)+1:end)),1:num_symd,'r.'); % plota da modulaÃ§Ã£o 16 QAM
-figure(3*j-2)
-semilogy(1:num_ite, conj(err_vec).*err_vec, 'red');
-xlabel('plot(e.*e)');
-% axis([-1 600 -1 1]);
+figure(j)
+title(sprintf('Treinamento com %d símbolos', num_symt));
+subplot(1,3,1);
+plot3(real(signal_d),imag(signal_d),1:num_symd,'r.'); % plota da modulaÃ§Ã£o 16 QAM
+title('Evolução Temporal de s(n)');
+xlabel('R\{s(n)\}');
+ylabel('I\{s(n)\}');
+zlabel('Num. de Iterações (Tempo)');
 
+subplot(1,3,2);
+plot3(real(x(num_symt(j)+1:end)),imag(x(num_symt(j)+1:end)),1:num_symd,'r.'); % plota da modulaÃ§Ã£o 16 QAM
+title('Evolução Temporal de x(n)');
+xlabel('R\{x(n)\}');
+ylabel('I\{x(n)\}');
+zlabel('Num. de Iterações (Tempo)');
+
+subplot(1,3,3);
+plot3(real(eq_out(num_symt(j)+1:end)),imag(eq_out(num_symt(j)+1:end)),1:num_symd,'r.'); % plota da modulaÃ§Ã£o 16 QAM
+title('Evolução Temporal de s~(n)');
+xlabel('R\{s~(n)\}');
+ylabel('I\{s~(n)\}');
+zlabel('Num. de Iterações (Tempo)');
+
+mtit(sprintf('Treinamento com %d símbolos', num_symt(j)), 'yoff', 0.05 )
 end
 
