@@ -54,8 +54,8 @@ for i=1:length(m)
     end
 end
 J = J';
-figure(2)
 
+figure(2)
 subplot(2,2,1); contour(m,n,J,8);
 title('LMS');
 subplot(2,2,2); contour(m,n,J,8);
@@ -65,7 +65,12 @@ title('Gradiente Determinístico');
 subplot(2,2,4); contour(m,n,J,8);
 title('Newton');
 
+figure(4)
+subplot(2,1,1);
+contour(m,n,J,8);
+title('RLS');
 
+figure(2)
 subplot(2,2,1); hold on;
 mse_lms = do_algorithm(amostras, dados, x, w_lms, p, R, 'lms');
 hold off;
@@ -79,8 +84,12 @@ subplot(2,2,4); hold on;
 mse_newton = do_algorithm(amostras, dados, x, w_newton, p, R, 'newton');
 hold off;
 % rls...
-figure(3)
+figure(4)
+subplot(2,1,1);hold on;
+mse_rls = do_algorithm(amostras, dados, x, w_newton, p, R, 'rls');
+hold off;
 
+figure(3)
 subplot(2,2,1);
 semilogy(mse_lms);
 title('LMS'); xlabel('sample'); ylabel('MSE');
@@ -94,3 +103,7 @@ subplot(2,2,4);
 semilogy(mse_newton);
 title('Newton'); xlabel('sample'); ylabel('MSE');
 
+figure(4)
+subplot(2,1,2);
+semilogy(mse_rls);
+title('RLS'); xlabel('sample'); ylabel('MSE');

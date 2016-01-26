@@ -15,7 +15,13 @@ for i=length(w):samples
             w = w + 0.02 * (1/(x_v' * x_v + 0.01)) * e.* x_v;
         case {'grad'}
             w = w - 2 * 0.01 * (R * w - p);
-        %case{'rls'}
+        case{'rls'}
+            delta = 0.1;
+            S  = delta*eye(2);
+            lamb = 0.99;
+            psi = S*x_v;
+            S = (1/lamb)*(S - (psi*psi')/(lamb + psi'*x_v));
+            w = w + e*S*x_v;
     end
     plot([w_o(1) w(1)], [w_o(2) w(2)]);
     w_o = w;
