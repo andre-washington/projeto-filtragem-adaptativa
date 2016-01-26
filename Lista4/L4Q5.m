@@ -106,7 +106,7 @@ end
 figure(l)
 semilogy(delay+1:num_ite, err_vec(delay+1:end).*conj(err_vec(delay+1:end)));
 
-gtitle = title('Erro Quadrático Filtro RLS');
+gtitle = title(sprintf('Erro Quadrático Filtro RLS (lambda = %.3f)', lambda(l)));
 gxlabel = xlabel('Num. de Iterações');    
 gylabel = ylabel('Erro Quadrático');
 set( gca                       , ...
