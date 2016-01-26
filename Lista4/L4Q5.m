@@ -1,5 +1,6 @@
 clear, clc, close all
 
+num_mcite = 100;
 num_taps = 15; % number of filter taps
 num_symt = 500; % number of symbols of training mode (tm)
 num_symd = 5000; % number of symbols of control-by-decision mode (dm)
@@ -10,7 +11,6 @@ num_ite = num_symt + num_symd; % number of total iterations
 
 SNR = 30; % given signal to noise ratio
 
-mu = 0.4; % given step factor 
 lambda = [0.9, 0.99, 0.999];
 
 for l = 1:length(lambda)
@@ -74,25 +74,17 @@ pd = zeros(num_taps, 1);
 for k = 1:num_symt  
     inp = [x(k); init];
     init = inp(1:end-1);
-      
     if(k > delay)
-       d = signal(k-delay);  
-	  
-       sd = 1/lambda(l)*(sd - (sd*inp*inp'*sd)/(lambda(l) + inp'*sd*inp));
-       pd = lambda(l)*pd + d*inp;         
-       w = sd*pd;
+    d = signal(k-delay);   
+    sd = 1/lambda(l)*(sd - (sd*inp*inp'*sd)/(lambda(l) + inp'*sd*inp)); 
+    pd = lambda(l)*pd + conj(d)*inp;         
+    w = sd*pd;
       
-       eq_out(k) = w'*inp;
-    
-       err_vec(k) = d - eq_out(k); % Compara o sinal de entrada com saida (adiantado). Por exemplo(sinal(s) 1 com saida (eq_out) 8)
+    eq_out(k) = w'*inp;
+    err_vec(k) = d - eq_out(k); % Compara o sinal de entrada com saida (adiantado). Por exemplo(sinal(s) 1 com saida (eq_out) 8)
     
     end
 end
-
-
-% ploting the equalizer output in time
-%figure(1)
-%plot3(real(eq_out(1:num_symt)),imag(eq_out(1:num_symt)),1:num_symt,'r.'); 
 
 % part II: control by decision mode. 
 
@@ -102,7 +94,7 @@ for k = num_symt+1:num_symt+num_symd % Ã‰ nessessario esperar um momento (amostr
       
     d = qam_decisor(w'*inp, const_sized);   
     sd = 1/lambda(l)*(sd - (sd*inp*inp'*sd)/(lambda(l) + inp'*sd*inp));
-    pd = lambda(l)*pd + d*inp;         
+    pd = lambda(l)*pd + conj(d)*inp;         
     w = sd*pd;
       
     eq_out(k) = w'*inp;
@@ -111,10 +103,10 @@ for k = num_symt+1:num_symt+num_symd % Ã‰ nessessario esperar um momento (amostr
     
 end
 
-figure(2)
-semilogy(1:num_ite, err_vec.*conj(err_vec));
+figure(l)
+semilogy(delay+1:num_ite, err_vec(delay+1:end).*conj(err_vec(delay+1:end)));
 
-gtitle = title('Erro Quadrático Filtro LMS');
+gtitle = title('Erro Quadrático Filtro RLS');
 gxlabel = xlabel('Num. de Iterações');    
 gylabel = ylabel('Erro Quadrático');
 set( gca                       , ...
