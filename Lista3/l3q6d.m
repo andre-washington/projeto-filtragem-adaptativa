@@ -5,7 +5,6 @@ num_symt = 500; % number of symbols of training mode (tm)
 num_symd = 5000; % number of symbols of control-by-decision mode (dm)
 const_sizet = 4; % constellation syze of tm
 const_sized = [4 16 64 256]; % constellation size of dm
-const_sized = 16;
 SNR = 5:1:30; % given signal to noise ratio
 mu = 0.4; % given step factor
 gama = 10^-6; % 
