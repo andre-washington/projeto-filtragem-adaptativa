@@ -20,6 +20,7 @@ noise = sqrt(noise_var)*randn(num_ite, 1) + noise_mean; %ruído
 % finding mu max 
 mu_max = 1/trace(input_var.*eye(num_taps));
 mu = [mu_max/2, mu_max/10, mu_max/50]; 
+idx = [2, 10, 50];
 
 % defining the system according to the given transfer function
 h_num = [1 0 0 0 0 0 0 0 0 0 0 0 -1];
@@ -65,14 +66,18 @@ lms_flt = zeros(num_taps, 1);
     
 figure(2*j-1)
 semilogy(error_vec.^2);
-xlabel('plot(e^2)');
+title(sprintf('Comportamento do Erro Quadrático LMS (1/%d*mu-max)', idx(j)));
+xlabel('Num. de Iterações');
 hold on;
+ylabel('Erro Quadrático');
 plot(ones(1, num_ite)*jmin);
+legend('LMS', 'Erro Mínimo');
 hold off;
 
 
 figure(2*j)
 freqz(lms_flt);
+mtit(sprintf('Resposta em Frequência do Filtro FIR (1/%d*mu-max)', idx(j)));
 
 %plot(output_flt(1:break_point));
 %hold on;
@@ -82,3 +87,4 @@ end
 
 figure(7)
 freqz(h_num, h_den);
+mtit('Resposta em Frequência do Sistema');
