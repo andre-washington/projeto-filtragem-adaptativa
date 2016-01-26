@@ -83,7 +83,7 @@ plot3(real(eq_out(1:num_symt(j))),imag(eq_out(1:num_symt(j))),1:num_symt(j),'r.'
 
         eq_out(k) = w'*inp;
 
-        d = decisor_qam(eq_out(k));
+        d = qam_decisor(eq_out(k),const_sized);
 
         err_vec(k) = d - eq_out(k);
         w = w + mu*conj(err_vec(k))*inp;

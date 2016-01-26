@@ -1,207 +1,103 @@
-% % LMS complexo
-% e(k) = d(k) -w^H (k) x(k);
-% w(k+1) = w(k) + mu_c * conjugated(e) * (k) * x(k)
+clear, clc, close all
 
-% % NRMS
-% % Inicializa
-% x(0) = w(0) = [ 0 0 .. 0]^T
-% mu_n no intervalo 0< mu_n <= 2
-% gama  const. pequeno
-% 
-% % para k> 0:
-% e(k) = d(k) - x^T (k) *w(k)
-% w(k+1) = w(k) + mu_n/ (gama + x^T(k) * x(k) ) * e(k) * x(k)
-%
-% para o caso complexo:
-% e(k) = d(k) - x^H (k) *w(k)
-% w(k+1) = w(k) + mu_n/ (gama + x^H(k) * x(k) ) * conjugated (e(k)) * x(k)
+num_taps = 15; % number of filter taps
+num_symt = 500; % number of symbols of training mode (tm)
+num_symd = 5000; % number of symbols of control-by-decision mode (dm)
+const_sizet = 4; % constellation syze of tm
+const_sized = 16; % constellation size of dm
 
-clear
+num_ite = num_symt + num_symd; % number of total iterations
 
-num_taps = 15;
-rep = 500; % numero de repetiï¿½ï¿½es
-SNR = 30;
+SNR = 30; % given signal to noise ratio
 
-
-mu = 0.4;
-gama = 10^-5; 
+mu = 0.4; % given step factor
+gama = 10^-6; % 
    
-% sinal 4 qam
-%constelation = [1+1i,1-1i,-1+1i,-1-1i];
-%data  = ceil(4*rand(rep,1));
-%s = transpose(constelation(data));  % sinal de treinamento
+%generating the data signal for training (4QAM) and
+%control-by-decision(16QAM)
+data_t = randi(const_sizet, num_symt, 1) - 1; 
+data_d = randi(const_sized, num_symd, 1) - 1;
 
-M = 4;                     % Size of signal constellation
-nb = log2(M);                % Number of bits per symbol
- 
-dataIn = randi([0 1],nb*rep,1);
-dataInMatrix = reshape(dataIn,length(dataIn)/nb,nb);   % Reshape data into binary 4-tuples
-dataSymbolsIn = bi2de(dataInMatrix);                 % Convert to integers
-s = qammod(dataSymbolsIn,M,0); 
-% n = n_var_4qam*randn(1,rep); %ruï¿½do
+% modeling the data with 4QAM and 16QAM
 
+signal_t = qammod(data_t, const_sizet);
+signal_d = qammod(data_d, const_sized);
 
+% channel input signal
+signal = [signal_t; signal_d];
+
+% channel coefficients
 H_num = [0.5 1.2 1.5 -1];
 H_den = 1;
-sh = filter(H_num, H_den, s);
-n_var_4qam = var(sh) * 10^(-SNR/10);
-    
-%ruï¿½do deve ser complexo e a variancia divida para cada parte (real/imag)
-n = sqrt(n_var_4qam/2)*(randn(rep, 1)+1i*(randn(rep, 1)));
-% transposte deve ser usada no lugar do hermitiano
-x=sh+n; % sinal desejado na entrada do equalizador + ruido
 
-% part I: trainning.
-w = zeros(num_taps, 1); 
+% computing channel output
+ch_out = filter(H_num, H_den, signal);
 
-eq_out = zeros(1, rep);
-err_vec = zeros(1,rep);
+% Computing the noise variance for each constellation map for 30db SNR
+% Normalization factor QAM sqrt( 2/3(M-1) ), M being the constellation size
 
-init = zeros(num_taps - 1, 1);
+n_var_4qam = (norm(H_num).^2* 2/3*(const_sizet-1)) * 10^(-SNR/10);
+n_var_16qam = (norm(H_num).^2* 2/3*(const_sized-1)) * 10^(-SNR/10);   
 
-% for k = 1:rep
-%     if(k < num_taps)
-% 	inp = [x(k); init];
-% 	init = inp(1:end-1);
-%     else
-% 	inp = x(k:-1:k-num_taps+1);	   
-%     end
-%     eq_out(k) = w'*inp;
-%     err_vec(k) = s(k) - eq_out(k);
-%     w = w + (mu/(gama + inp' * inp))*(conj(err_vec(k)) * inp);
-%     
-% end
+%the noise should be complex and the variance divided for each part (real/imag)
+%noise for the training part
+noise_t = sqrt(n_var_4qam/2)*(randn(num_symt, 1)+1i*(randn(num_symt, 1)));
 
-for k = 8:rep % É nessessario esperar um momento (amostras) até fazer a comparação com o sinal (Seção 2.10.4 pag.57 Diniz) . Nesse caso 7 ou 8(metade do comprimento do filtro), pois tem comprimento 15.
-    if(k < num_taps)
+%noise for the control by decision part
+noise_d = sqrt(n_var_16qam/2)*(randn(num_symd, 1)+1i*(randn(num_symd, 1)));
+
+% computing the equalizer input (adding awgn noise to channel output)
+x = ch_out + [noise_t ; noise_d]; 
+
+w = zeros(num_taps, 1); % initialiazing the equalizer taps
+
+eq_out = zeros(1, num_ite); % vector for storage of equalizer outputs
+err_vec = zeros(1,num_ite); % vector for error storage
+
+init = zeros(num_taps - 1, 1); % vector for convolution sliding window
+
+% part I: trainning mode.
+
+% it's necessary to wait for a number of samples before perform the
+% comparation with the input (section 2.10.4, page 57, Diniz)
+% Half of filter length
+delay = ceil(num_taps/2);
+
+for k = 1:num_symt  
 	inp = [x(k); init];
     init = inp(1:end-1);
-    else
-	inp = x(k:-1:k-num_taps+1);	   
-    end
     eq_out(k) = w'*inp;
-    err_vec(k) = s(k-7) - eq_out(k); % Compara o sinal de entrada com saida (adiantado). Por exemplo(sinal(s) 1 com saida (eq_out) 8)
-    w = w + (mu/(gama + inp' * inp))*(conj(err_vec(k)) * inp);
-    
+    if(k > delay)
+    err_vec(k) = signal(k-delay) - eq_out(k); % Compara o sinal de entrada com saida (adiantado). Por exemplo(sinal(s) 1 com saida (eq_out) 8)
+    w = w + mu*conj(err_vec(k))*inp/(inp'*inp+gama);
+    end
 end
+
+
+
+% ploting the equalizer output in time
 figure(1)
-plot3(real(eq_out),imag(eq_out),1:rep,'r.'); % plota da modulação 4 QAM
-%keyboard;
-figure(2)
-semilogy(1:500, conj(err_vec).*err_vec);
-xlabel('plot(e.*e)');
+plot3(real(eq_out(1:num_symt)),imag(eq_out(1:num_symt)),1:num_symt,'r.'); 
 
-%figure(2)
-%semilogy(real(s));
-%xlabel('plot(e.*e)');
+% part II: control by decision mode. 
 
-
-
-% part II: decision block included. 
-
-rep = 5000;
-% sinal 16 qam
-%constelation2 = [
-%    1+1i,1-1i,-1+1i,-1-1i, 2+1i,2-1i,-2+1i,-2-1i, 1+2i,1-2i,-1+2i,-1-2i, 2+2i,2-2i,-2+2i,-2-2i ];
-%data  = ceil(16*rand(rep,1));
-%s2 = transpose(constelation2(data));  % sinal de entrada
-
-M = 16;                     % Size of signal constellation
-nb = log2(M);                % Number of bits per symbol
-dataIn = randi([0 1],nb*rep,1);
-dataInMatrix = reshape(dataIn,length(dataIn)/nb,nb);   % Reshape data into binary 4-tuples
-dataSymbolsIn = bi2de(dataInMatrix);                 % Convert to integers
-
-s2 = qammod(dataSymbolsIn,M,0); 
-
-sh2 = filter(H_num, H_den, s2);
-n_var_4qam = var(sh2) * 10^(-SNR/10);
-    
-%ruï¿½do deve ser complexo e a variancia divida para cada parte (real/imag)
-n = sqrt(n_var_4qam/2)*(randn(rep, 1)+1i*(randn(rep, 1)));
-% transposte deve ser usada no lugar do hermitiano
-x2=sh2+n; % sinal desejado na entrada do equalizador + ruido
-
-eq_out = zeros(1, rep);
-err_vec = zeros(1,rep);
-init = zeros(num_taps - 1, 1);
-xd = zeros(1, rep);
-
-for k = 1:rep % É nessessario esperar um momento (amostras) até fazer a comparação com o sinal (Seção 2.10.4 pag.57 Diniz) . Nesse caso 7 ou 8(metade do comprimento do filtro), pois tem comprimento 15.
-    if(k < num_taps)
-	inp = [x2(k); init];
+for k = num_symt+1:num_symt+num_symd % É nessessario esperar um momento (amostras) até fazer a comparação com o sinal (Seção 2.10.4 pag.57 Diniz) . Nesse caso 7 ou 8(metade do comprimento do filtro), pois tem comprimento 15.
+	inp = [x(k); init];
     init = inp(1:end-1);
-    else
-	inp = x2(k:-1:k-num_taps+1);	   
-    end
+    
     eq_out(k) = w'*inp;
+   
+    d = qam_decisor(eq_out(k), const_sized);
     
-    % decision block
-    %rounding real part
-    switch(abs(real(eq_out(k))))
-        case 0
-            switch(randi(2))
-                case 1
-                    xd(k) = complex(1, imag(eq_out(k)));
-                case 2
-                    xd(k) = complex(-1, imag(eq_out(k)));
-            end
-        case 2 
-             switch(randi(2))
-                case 1
-                    xd(k) = complex(3*sign(real(eq_out(k))), imag(eq_out(k)));
-                case 2
-                    xd(k) = complex(1*sign(real(eq_out(k))), imag(eq_out(k)));
-             end
-        otherwise
-            if (abs(real(eq_out(k))) > 2)
-                xd(k) = complex(sign(real(eq_out(k)))*3, imag(eq_out(k)));
-            else
-                xd(k) = complex(sign(real(eq_out(k)))*1, imag(eq_out(k)));
-            end
-    end
-    %rounding imaginary part
+    err_vec(k) = d - eq_out(k); 
+    w = w + mu*conj(err_vec(k))*inp/(inp'*inp+gama);
     
-    switch(abs(imag(xd(k))))
-        case 0
-            switch(randi(2))
-                case 1
-                    xd(k) = complex(real(xd(k)), 1);
-                case 2
-                    xd(k) = complex(real(xd(k)), -1);
-            end
-        case 2 
-             switch(randi(2))
-                case 1
-                    xd(k) = complex(real(xd(k)), 3*sign(imag(xd(k))));
-                case 2
-                    xd(k) = complex(real(xd(k)), 1*sign(imag(xd(k))));
-             end
-        otherwise
-            if (abs(imag(xd(k))) > 2)
-                xd(k) = complex(real(xd(k)), sign(imag(xd(k)))*3);
-            else
-                xd(k) = complex(real(xd(k)), sign(imag(xd(k)))*1);
-            end
-    end
-    % end of decision block
-    if(k > 7)
-    err_vec(k) = eq_out(k) - xd(k-7); 
-    w = w + (mu/(gama + inp' * inp))*(conj(err_vec(k)) * inp);
-    end
 end
 
-dataSymbolsOut = qamdemod(eq_out,M); 
-dataOutMatrix = de2bi(dataSymbolsOut,nb);
-dataOut = dataOutMatrix(:); 
-
-[numErrors,ber] = biterr(dataIn,dataOut);
-
-%ber
 figure(3)
-plot3(real(eq_out),imag(eq_out),1:rep,'r.'); % plota da modulação 16 QAM
+plot3(real(eq_out(num_symt+1:end)),imag(eq_out(num_symt+1:end)),1:num_symd,'r.'); % plota da modulação 16 QAM
 figure(4)
-semilogy(1:5000, conj(err_vec).*err_vec, 'red');
+semilogy(1:num_ite, conj(err_vec).*err_vec, 'red');
 xlabel('plot(e.*e)');
 % axis([-1 600 -1 1]);
 

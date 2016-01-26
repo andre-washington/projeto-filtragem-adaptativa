@@ -80,20 +80,20 @@ for j = 1:length(const_sized)
         % part II: control by decision mode. 
         sym_out = zeros(num_symd, 1);
         
+        d = zeros(num_symd, 1);
         for k = num_symt+1:num_symt+num_symd % É nessessario esperar um momento (amostras) até fazer a comparação com o sinal (Seção 2.10.4 pag.57 Diniz) . Nesse caso 7 ou 8(metade do comprimento do filtro), pois tem comprimento 15.
             inp = [x(k); init];
             init = inp(1:end-1);
 
             eq_out(k) = w'*inp;
             
-            sym_out(k - num_symt) = qamdemod(eq_out(k), const_sized(j));
-            d = qammod(sym_out(k - num_symt), const_sized(j));
+            d(k-num_symt) = qam_decisor(eq_out(k), const_sized(j));
             
-            err_vec(k) = d - eq_out(k); 
+            err_vec(k) = d(k-num_symt) - eq_out(k); 
             w = w + mu*conj(err_vec(k))*inp/(inp'*inp+gama);
             
         end
-       SER(j, l) = symerr(sym_out(delay+1:end), data_d(1:end-delay)); 
+       SER(j, l) = symerr(qamdemod(d(delay+1:end), const_sized(j)), data_d(1:end-delay)); 
     end
     figure(j)
     plot(SNR, SER(j,:));

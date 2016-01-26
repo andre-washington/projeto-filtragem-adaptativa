@@ -84,7 +84,7 @@ for k = num_symt+1:num_symt+num_symd % É nessessario esperar um momento (amostr
     
     eq_out(k) = w'*inp;
    
-    d = qammod(qamdemod(eq_out(k), const_sized), const_sized);
+    d = qam_decisor(eq_out(k), const_sized);
    
     err_vec(k) = d - eq_out(k); 
     w = w + mu*conj(err_vec(k))*inp/(inp'*inp+gama);
