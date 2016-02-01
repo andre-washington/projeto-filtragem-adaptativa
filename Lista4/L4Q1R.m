@@ -14,11 +14,7 @@ err_vec = zeros(num_ite, 1);
 y = zeros(num_ite, 1);
 for k = 1:num_ite 
    d = input(k+1);
-   if (k < num_taps)
-       x = [input(k); x(1:end-1)];
-   else
-       x = input(k:-1:k-num_taps+1);
-   end
+   x = [input(k); x(1:end-1)]; 
    e = d - x'*w;
    phi = sd*x;
    
